@@ -32,7 +32,9 @@ if __name__ == "__main__":
     # get frequency bin centers
     frequency_resolution = np.fft.rfftfreq(len(vec), 1 / SAMPLING_RATE)
     dominant_frequency = frequency_resolution[max_index]
-    print("Dominant frequency:", dominant_frequency)
+    second_dominant_frequency = frequency_resolution[np.argpartition(magnitudes, -2)[-2]]
+    print(f"Dominant frequency: {dominant_frequency}")
+    print(f"Secondary frequency: {second_dominant_frequency}")
 
     # # Plot the Fourier transform as a histogram
     # plt.figure(figsize=(10, 6))
