@@ -1,10 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
+from config import Config
+import yaml
 
 
 if __name__ == "__main__":
-    WAV_FNAME = "/home/mvg/Music/bon.wav"
+    with open("config.yaml", "r") as f:
+        config_data = yaml.safe_load(f)
+    config = Config.model_validate(config_data)
+
     FREQ_LOW = 15 # Hz is about as low as humans can hear
     FRAME_RATE = 24 # FPS
     DURATION = 5 # seconds
@@ -12,7 +17,7 @@ if __name__ == "__main__":
     NUM_FRAMES = DURATION * FRAME_RATE
 
     # Read in the data from our audio file and cut it to the length/times we want
-    SAMPLERATE, data = wavfile.read(WAV_FNAME)
+    SAMPLERATE, data = wavfile.read(config.audio_input.filename)
     WIN_LEN = int(1 / FREQ_LOW * 5 * SAMPLERATE) # technically we might be able to get away with one cycle, but 5 is nice to have
     x = np.linspace(START_TIME, START_TIME + DURATION, DURATION * SAMPLERATE)
     left_channel = data[:,1]

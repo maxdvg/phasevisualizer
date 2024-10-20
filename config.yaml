@@ -1,0 +1,6 @@
+audio_input:
+  filename: "/home/mvg/Music/bon.wav"
+
+video_properties:
+  output_filename: "go.mp4"
+  framerate: 30
