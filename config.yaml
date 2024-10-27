@@ -1,6 +1,10 @@
 audio_input:
   filename: "/home/mvg/Music/bon.wav"
+  a_freq: 440
+  low_freq: 15
 
 video_properties:
   output_filename: "go.mp4"
   framerate: 30
+  resolution_width: 1920
+  resolution_height: 1080
