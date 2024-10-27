@@ -7,18 +7,19 @@ class Palette(BaseModel):
     """
     Default palette is Scriabin's synesthesia palette
     """
-    C: str = "rgba(255,0,0,255)"
-    G: str = "rgba(255,127,0,255)"
-    D: str = "rgba(255,255,0,255)"
-    A: str = "rgba(51,204,51,255)"
-    E: str = "rgba(195,242,255,255)"
-    B: str = "rgba(142,201,255,255)"
-    Gb: str = "rgba(127,139,253,255)"
-    Db: str = "rgba(144,0,255,255)"
-    Ab: str = "rgba(187,117,252,255)"
-    Eb: str = "rgba(183,70,139,255)"
-    Bb: str = "rgba(183,70,139,255)"
-    F: str = "rgba(171,0,52,255)"
+    C: str = "rgba(255,0,0)"
+    G: str = "rgba(255,127,0)"
+    D: str = "rgba(255,255,0)"
+    A: str = "rgba(51,204,51)"
+    E: str = "rgba(195,242,255)"
+    B: str = "rgba(142,201,255)"
+    Gb: str = "rgba(127,139,253)"
+    Db: str = "rgba(144,0,255)"
+    Ab: str = "rgba(187,117,252)"
+    Eb: str = "rgba(183,70,139)"
+    Bb: str = "rgba(183,70,139)"
+    F: str = "rgba(171,0,52)"
+    Background: str = "rgba(0, 0, 0)"
 
 def freqs_to_notes(base_freq_a: float, min_freq: int = 15, max_freq: int = 18000) -> dict:
     """Calculates the frequencies of notes in a 12 tone equal temperment scale with a relative tuning of base_freq_a
@@ -66,8 +67,9 @@ def find_closest_note(frequency: float, freq_to_note: dict[float, str]):
     note_freqs = list(freq_to_note.keys())
     # Find the index of the first frequency greater than or equal to the given frequency
     index = np.searchsorted(note_freqs, frequency, side="left")
+    # TODO: THIS IS TERRIBLE FIND AN ACTUAL WAY TO HANDLE WHEN THE NOTE IS TOO LOW!
     if index == 0:
-        return 0
+        return "C"
     prev_diff = abs(note_freqs[index - 1] - frequency)
     next_diff = abs(note_freqs[index] - frequency)
     # index of the note with the smallest difference
@@ -76,12 +78,12 @@ def find_closest_note(frequency: float, freq_to_note: dict[float, str]):
 
 
 def rgba_to_ndarray(rgba_str: str) -> np.ndarray:
-    """Converts a string of the form "rgba(r,g,b,a)" to a numpy ndarray.
+    """Converts a string of the form "rgba(r,g,b)" to a numpy ndarray.
     Args:
-        rgba_str: The string containing the RGBA values.
+        rgba_str: The string containing the RGB values.
 
     Returns:
-        umpy ndarray of type int u8 with the RGBA values [r, g, b, a]
+        umpy ndarray of type int u8 with the RGB values [r, g, b]
     """
     rgba_str = rgba_str.replace("rgba(", "").replace(")", "")
     # Split the string into individual values
