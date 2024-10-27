@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from dataclasses import dataclass
 import numpy as np
+from typing import Dict
 
 class Palette(BaseModel):
     """
@@ -19,8 +20,7 @@ class Palette(BaseModel):
     Bb: str = "rgba(183,70,139,255)"
     F: str = "rgba(171,0,52,255)"
 
-NOTES = ("A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab")
-def notes_to_freqs(base_freq_a: float, min_freq: int = 15, max_freq: int = 18000) -> dict:
+def freqs_to_notes(base_freq_a: float, min_freq: int = 15, max_freq: int = 18000) -> dict:
     """Calculates the frequencies of notes in a 12 tone equal temperment scale with a relative tuning of base_freq_a
 
     Args:
@@ -43,16 +43,17 @@ def notes_to_freqs(base_freq_a: float, min_freq: int = 15, max_freq: int = 18000
     next_note_idx_up = lambda idx: (idx + 1) % len(notes)
     cur_freq = next_freq_up(cur_freq)
     cur_note_idx = next_note_idx_up(cur_note_idx)
-    note_freqs = {}
+    # Get the name of all the notes in our frequency range
+    freq_to_note = {}
     while cur_freq < max_freq:
-        note_freqs[cur_freq] = notes[cur_note_idx]
+        freq_to_note[cur_freq] = notes[cur_note_idx]
         cur_note_idx = next_note_idx_up(cur_note_idx)
         cur_freq = next_freq_up(cur_freq)
 
-    return note_freqs
+    return freq_to_note
 
 
-def find_closest_note(frequency, note_freqs):
+def find_closest_note(frequency: float, freq_to_note: dict[float, str]):
     """Finds the closest note to a given frequency.
 
     Args:
@@ -62,20 +63,16 @@ def find_closest_note(frequency, note_freqs):
     Returns:
         The index of the closest note in the `note_freqs` array.
     """
-
+    note_freqs = list(freq_to_note.keys())
     # Find the index of the first frequency greater than or equal to the given frequency
     index = np.searchsorted(note_freqs, frequency, side="left")
-
-    # If the index is 0, the given frequency is less than the first note frequency
     if index == 0:
         return 0
-
-    # Calculate the difference between the given frequency and the frequencies of the adjacent notes
     prev_diff = abs(note_freqs[index - 1] - frequency)
     next_diff = abs(note_freqs[index] - frequency)
-
-    # Return the index of the note with the smallest difference
-    return index - 1 if prev_diff < next_diff else index
+    # index of the note with the smallest difference
+    closest_index = index - 1 if prev_diff < next_diff else index
+    return freq_to_note[note_freqs[closest_index]]
 
 
 def rgba_to_ndarray(rgba_str: str) -> np.ndarray:
@@ -98,9 +95,12 @@ class ColorPallateSampler:
         self.base_freq = base_freq
         self.palette = palette
         self.color_snapping = color_snapping
+        self.freq_to_notes = freqs_to_notes(base_freq)
 
     def color_for_freq(self, freq: float):
-        pass
-
-if __name__ == "__main__":
-    notes_to_freqs(440)
+        if self.color_snapping:
+            nearest_note = find_closest_note(freq, self.freq_to_notes)
+            nearest_note_color: str = getattr(self.palette, nearest_note)
+            return rgba_to_ndarray(nearest_note_color)
+        else:
+            raise NotImplementedError("color_for_freq not yet defined when color_snapping not enabled")
