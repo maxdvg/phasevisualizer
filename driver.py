@@ -31,8 +31,8 @@ if __name__ == "__main__":
     num_frames = DURATION * config.video_properties.framerate
     # Read in the data from our audio file and cut it to the length/times we want
     sample_rate, data = wavfile.read(config.audio_input.filename)
-    stretch = 15
-    window_len = int(1 / config.audio_input.low_freq * stretch * sample_rate) # technically we might be able to get away with one cycle, but 5 is nice to have
+    stretch = 5
+    window_len = int(1 / config.audio_input.low_freq * stretch * sample_rate)
     left_channel = data[:,1]
     vec = left_channel[sample_rate * START_TIME:sample_rate * (START_TIME + DURATION) + window_len]
 

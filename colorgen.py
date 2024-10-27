@@ -69,7 +69,7 @@ def find_closest_note(frequency: float, freq_to_note: dict[float, str]):
     index = np.searchsorted(note_freqs, frequency, side="left")
     # TODO: THIS IS TERRIBLE FIND AN ACTUAL WAY TO HANDLE WHEN THE NOTE IS TOO LOW!
     if index == 0:
-        return "C"
+        return "Background"
     prev_diff = abs(note_freqs[index - 1] - frequency)
     next_diff = abs(note_freqs[index] - frequency)
     # index of the note with the smallest difference
