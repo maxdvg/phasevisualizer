@@ -25,16 +25,24 @@ if __name__ == "__main__":
                                     (config.video_properties.resolution_width, config.video_properties.resolution_height))
     
     # start getting the dominant frequencies and writing the frame
-    DURATION = 30 # seconds
+    DURATION = 55 # seconds
     START_TIME = 0 # seconds
 
     num_frames = DURATION * config.video_properties.framerate
     # Read in the data from our audio file and cut it to the length/times we want
     sample_rate, data = wavfile.read(config.audio_input.filename)
-    stretch = 5
+    stretch = 9
     window_len = int(1 / config.audio_input.low_freq * stretch * sample_rate)
     left_channel = data[:,1]
     vec = left_channel[sample_rate * START_TIME:sample_rate * (START_TIME + DURATION) + window_len]
+
+    def normal_gaussian_window(num_std_devs: int, num_samples: int) -> np.ndarray:
+        xs = np.linspace(-1 * num_std_devs, num_std_devs, num_samples)
+        standard_dev = 1.0
+        return 1.0 / (np.sqrt(2 * np.pi * standard_dev)) * np.exp(-1 * ((xs) ** 2.0) / (2 * standard_dev ** 2))
+
+    window_fn = normal_gaussian_window(3, window_len)
+    # TODO: place the windowing function over the actual one and make the frame actually matrch the time it's displayed
 
     for frame_idx in tqdm(range(num_frames), desc="Processing frames", unit="frame"):
         samples_from_start_pos = floor(frame_idx * (1 / config.video_properties.framerate) * sample_rate)
