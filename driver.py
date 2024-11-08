@@ -33,6 +33,8 @@ if __name__ == "__main__":
     sample_rate, data = wavfile.read(config.audio_input.filename)
     stretch = 9
     window_len = int(1 / config.audio_input.low_freq * stretch * sample_rate)
+    # Make the window length even to simplify math
+    window_len = window_len + 1 if window_len % 1 == 1 else window_len
     left_channel = data[:,1]
     vec = left_channel[sample_rate * START_TIME:sample_rate * (START_TIME + DURATION) + window_len]
 
@@ -42,12 +44,14 @@ if __name__ == "__main__":
         return 1.0 / (np.sqrt(2 * np.pi * standard_dev)) * np.exp(-1 * ((xs) ** 2.0) / (2 * standard_dev ** 2))
 
     window_fn = normal_gaussian_window(3, window_len)
-    # TODO: place the windowing function over the actual one and make the frame actually matrch the time it's displayed
 
     for frame_idx in tqdm(range(num_frames), desc="Processing frames", unit="frame"):
         samples_from_start_pos = floor(frame_idx * (1 / config.video_properties.framerate) * sample_rate)
+        left_gaussian_frame = min(window_len // 2, samples_from_start_pos)
+        right_gaussian_frame = min(window_len // 2, len(vec) - samples_from_start_pos)
+        active_gaussian = window_fn[window_len // 2 - left_gaussian_frame: window_len // 2 + right_gaussian_frame]
         # Since we're dealing with real numbers we can use real fft
-        fourier_transform = np.fft.rfft(vec[samples_from_start_pos:samples_from_start_pos + window_len])
+        fourier_transform = np.fft.rfft(vec[samples_from_start_pos - left_gaussian_frame:samples_from_start_pos + right_gaussian_frame] * active_gaussian)
 
         # not concerned with phase, so get magnitude only
         # np.abs automatically calculates the magnitude of complex numbers
