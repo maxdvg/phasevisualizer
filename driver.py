@@ -31,7 +31,7 @@ if __name__ == "__main__":
     num_frames = DURATION * config.video_properties.framerate
     # Read in the data from our audio file and cut it to the length/times we want
     sample_rate, data = wavfile.read(config.audio_input.filename)
-    stretch = 9
+    stretch = 8
     window_len = int(1 / config.audio_input.low_freq * stretch * sample_rate)
     # Make the window length even to simplify math
     window_len = window_len + 1 if window_len % 1 == 1 else window_len
