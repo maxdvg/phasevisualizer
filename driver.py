@@ -31,7 +31,7 @@ if __name__ == "__main__":
     num_frames = DURATION * config.video_properties.framerate
     # Read in the data from our audio file and cut it to the length/times we want
     sample_rate, data = wavfile.read(config.audio_input.filename)
-    stretch = 8
+    stretch = 1
     window_len = int(1 / config.audio_input.low_freq * stretch * sample_rate)
     # Make the window length even to simplify math
     window_len = window_len + 1 if window_len % 1 == 1 else window_len
@@ -59,13 +59,24 @@ if __name__ == "__main__":
         max_index = np.argmax(magnitudes)
         # get frequency bin centers
         frequency_resolution = np.fft.rfftfreq(len(vec), 1 / sample_rate)
-        dominant_frequency = frequency_resolution[max_index]
-        i = -2
-        while dominant_frequency < config.audio_input.low_freq:
-            dominant_frequency = frequency_resolution[np.argpartition(magnitudes, i)[i]]
-            i -= 1
+        # just throw away the highest frequencies I don't want to deal with it
+        splices = np.split(magnitudes[:len(magnitudes) - len(magnitudes) % config.video_properties.bins], config.video_properties.bins)
+        bar_heights = np.sum(np.vstack(splices), axis=1)
+        frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        max_height = 2e7
+        for bar_idx in range(config.video_properties.bins):
+            bar_left = (frame.shape[1] // config.video_properties.bins) * bar_idx
+            bar_right = (frame.shape[1] // config.video_properties.bins) * (bar_idx + 1)
+            height_in_px = min(1080, int(max_height // bar_heights[bar_idx]))
+            frame[height_in_px:,bar_left:bar_right,1] = 250
+
+        # dominant_frequency = frequency_resolution[max_index]
+        # i = -2
+        # while dominant_frequency < config.audio_input.low_freq:
+        #     dominant_frequency = frequency_resolution[np.argpartition(magnitudes, i)[i]]
+        #     i -= 1
         
-        frame = np.full((1080, 1920, 3), palette_sampler.color_for_freq(dominant_frequency), dtype=np.uint8)
+        # frame = np.full((1080, 1920, 3), palette_sampler.color_for_freq(dominant_frequency), dtype=np.uint8)
         video_writer.write(frame)
     
     video_writer.release()
