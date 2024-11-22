@@ -1,5 +1,5 @@
 from config import Config
-from colorgen import ColorPallateSampler
+from colorgen import ColorPallateSampler, NOTE_ORDER
 import yaml
 import cv2
 from colorgen import Palette
@@ -74,10 +74,11 @@ if __name__ == "__main__":
         frame = np.zeros((config.video_properties.resolution_height, config.video_properties.resolution_width, 3), dtype=np.uint8)
         if max_height != 0.0:
             min_height = min(list(note_intensities.values()))
-            for idx, (note, note_intensity) in enumerate(note_intensities.items()):
-                bar_left = (frame.shape[1] // num_notes) * idx
-                bar_right = (frame.shape[1] // num_notes) * (idx + 1)
-                height_in_px = min(config.video_properties.resolution_height, int(note_intensity / max_height * config.video_properties.resolution_height))
+            for note, note_intensity in note_intensities.items():
+                bar_left = (frame.shape[1] // num_notes) * NOTE_ORDER.index(note)
+                bar_right = (frame.shape[1] // num_notes) * (NOTE_ORDER.index(note) + 1)
+                normalized_strength = (note_intensity - min_height) / (max_height - min_height)
+                height_in_px = min(config.video_properties.resolution_height, int(normalized_strength * config.video_properties.resolution_height))
                 frame[:height_in_px,bar_left:bar_right,] = palette_sampler.color_for_note(note)
 
         # dominant_frequency = frequency_resolution[max_index]

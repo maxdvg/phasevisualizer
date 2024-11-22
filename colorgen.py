@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 from typing import Dict
 
+NOTE_ORDER = ('A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab')
+
 class Palette(BaseModel):
     """
     Default palette is Scriabin's synesthesia palette
