@@ -5,6 +5,9 @@ __pycache__/
 
 # C extensions
 *.so
+*.mp4
+launch.json
+*png
 
 # Distribution / packaging
 .Python

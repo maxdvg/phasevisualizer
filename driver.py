@@ -80,14 +80,6 @@ if __name__ == "__main__":
                 normalized_strength = (note_intensity - min_height) / (max_height - min_height)
                 height_in_px = min(config.video_properties.resolution_height, int(normalized_strength * config.video_properties.resolution_height))
                 frame[:height_in_px,bar_left:bar_right,] = palette_sampler.color_for_note(note)
-
-        # dominant_frequency = frequency_resolution[max_index]
-        # i = -2
-        # while dominant_frequency < config.audio_input.low_freq:
-        #     dominant_frequency = frequency_resolution[np.argpartition(magnitudes, i)[i]]
-        #     i -= 1
-        
-        # frame = np.full((1080, 1920, 3), palette_sampler.color_for_freq(dominant_frequency), dtype=np.uint8)
         video_writer.write(frame)
     
     video_writer.release()
