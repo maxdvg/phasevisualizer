@@ -50,15 +50,16 @@ if __name__ == "__main__":
         left_gaussian_frame = min(window_len // 2, samples_from_start_pos)
         right_gaussian_frame = min(window_len // 2, len(vec) - samples_from_start_pos)
         active_gaussian = window_fn[window_len // 2 - left_gaussian_frame: window_len // 2 + right_gaussian_frame]
+        signal = vec[samples_from_start_pos - left_gaussian_frame:samples_from_start_pos + right_gaussian_frame]
         # Since we're dealing with real numbers we can use real fft
-        fourier_transform = np.fft.rfft(vec[samples_from_start_pos - left_gaussian_frame:samples_from_start_pos + right_gaussian_frame] * active_gaussian)
+        fourier_transform = np.fft.rfft(signal * active_gaussian)
 
         # not concerned with phase, so get magnitude only
         # np.abs automatically calculates the magnitude of complex numbers
         magnitudes = np.abs(fourier_transform)
         max_index = np.argmax(magnitudes)
         # get frequency bin centers
-        frequency_resolution = np.fft.rfftfreq(len(vec), 1 / sample_rate)
+        frequency_resolution = np.fft.rfftfreq(len(signal), 1.0 / sample_rate)
         # just throw away the highest frequencies I don't want to deal with it
         splices = np.split(magnitudes[:len(magnitudes) - len(magnitudes) % config.video_properties.bins], config.video_properties.bins)
         bar_heights = np.sum(np.vstack(splices), axis=1)
