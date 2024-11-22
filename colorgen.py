@@ -21,7 +21,7 @@ class Palette(BaseModel):
     F: str = "rgba(171,0,52)"
     Background: str = "rgba(0, 0, 0)"
 
-def freqs_to_notes(base_freq_a: float, min_freq: int = 15, max_freq: int = 18000) -> dict:
+def freqs_to_notes(base_freq_a: float, min_freq: int = 15, max_freq: int = 60000) -> dict:
     """Calculates the frequencies of notes in a 12 tone equal temperment scale with a relative tuning of base_freq_a
 
     Args:
@@ -102,7 +102,13 @@ class ColorPallateSampler:
     def color_for_freq(self, freq: float):
         if self.color_snapping:
             nearest_note = find_closest_note(freq, self.freq_to_notes)
-            nearest_note_color: str = getattr(self.palette, nearest_note)
-            return rgba_to_ndarray(nearest_note_color)
+            return self.color_for_freq(nearest_note)
         else:
             raise NotImplementedError("color_for_freq not yet defined when color_snapping not enabled")
+    
+    def closest_note(self, freq: float):
+        return find_closest_note(freq, self.freq_to_notes)
+    
+    def color_for_note(self, note: str):
+        nearest_note_color: str = getattr(self.palette, note)
+        return rgba_to_ndarray(nearest_note_color)

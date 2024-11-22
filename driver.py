@@ -7,6 +7,7 @@ import numpy as np
 from scipy.io import wavfile
 from math import floor
 from tqdm import tqdm
+import subprocess
 
 if __name__ == "__main__":
     # Load in the config file
@@ -60,16 +61,24 @@ if __name__ == "__main__":
         max_index = np.argmax(magnitudes)
         # get frequency bin centers
         frequency_resolution = np.fft.rfftfreq(len(signal), 1.0 / sample_rate)
-        # just throw away the highest frequencies I don't want to deal with it
-        splices = np.split(magnitudes[:len(magnitudes) - len(magnitudes) % config.video_properties.bins], config.video_properties.bins)
-        bar_heights = np.sum(np.vstack(splices), axis=1)
-        frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
-        max_height = 2e7
-        for bar_idx in range(config.video_properties.bins):
-            bar_left = (frame.shape[1] // config.video_properties.bins) * bar_idx
-            bar_right = (frame.shape[1] // config.video_properties.bins) * (bar_idx + 1)
-            height_in_px = min(1080, int(max_height // bar_heights[bar_idx]))
-            frame[height_in_px:,bar_left:bar_right,1] = 250
+        note_intensities: dict[np.ndarray, float] = {}
+        for idx, freq in enumerate(frequency_resolution):
+            # What is the closest note? Throw out high and low
+            if freq > 30 and freq < 5000:
+                note_intensities[palette_sampler.closest_note(freq)] = note_intensities.get(palette_sampler.closest_note(freq), 0.0) + magnitudes[idx]
+        # Ignore low frequencies
+        #note_intensities.pop('Background')
+        num_notes = len(note_intensities)
+        note_width = int(config.video_properties.resolution_width // num_notes)
+        max_height = max(list(note_intensities.values()))
+        frame = np.zeros((config.video_properties.resolution_height, config.video_properties.resolution_width, 3), dtype=np.uint8)
+        if max_height != 0.0:
+            min_height = min(list(note_intensities.values()))
+            for idx, (note, note_intensity) in enumerate(note_intensities.items()):
+                bar_left = (frame.shape[1] // num_notes) * idx
+                bar_right = (frame.shape[1] // num_notes) * (idx + 1)
+                height_in_px = min(config.video_properties.resolution_height, int(note_intensity / max_height * config.video_properties.resolution_height))
+                frame[:height_in_px,bar_left:bar_right,] = palette_sampler.color_for_note(note)
 
         # dominant_frequency = frequency_resolution[max_index]
         # i = -2
@@ -81,3 +90,5 @@ if __name__ == "__main__":
         video_writer.write(frame)
     
     video_writer.release()
+
+    subprocess.call(f"ffmpeg -i {config.video_properties.output_filename} -i {config.audio_input.filename} -y -c:v copy -c:a aac output.mp4", shell=True)

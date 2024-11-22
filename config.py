@@ -10,7 +10,6 @@ class VideoProperties(BaseModel):
     framerate: int
     resolution_width: int
     resolution_height: int
-    bins: int
 
 class Config(BaseModel):
     audio_input: AudioInput
