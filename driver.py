@@ -26,7 +26,7 @@ if __name__ == "__main__":
                                     (config.video_properties.resolution_width, config.video_properties.resolution_height))
     
     # start getting the dominant frequencies and writing the frame
-    DURATION = 1 * 60 # seconds
+    DURATION = 4 * 60 + 15 # seconds
     START_TIME = 0 # seconds
 
     num_frames = DURATION * config.video_properties.framerate

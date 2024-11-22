@@ -1,11 +1,11 @@
 audio_input:
-  filename: "/home/mvg/Music/verselaflamme.wav"
+  filename: "/home/mvg/Music/timeless.wav"
   a_freq: 440
   low_freq: 15
-  stretch: 10
+  stretch: 8
 
 video_properties:
   output_filename: "go.mp4"
-  framerate: 24
-  resolution_width: 1920
-  resolution_height: 1080
+  framerate: 30
+  resolution_width: 640
+  resolution_height: 480
