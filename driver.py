@@ -26,14 +26,13 @@ if __name__ == "__main__":
                                     (config.video_properties.resolution_width, config.video_properties.resolution_height))
     
     # start getting the dominant frequencies and writing the frame
-    DURATION = 55 # seconds
+    DURATION = 1 * 60 # seconds
     START_TIME = 0 # seconds
 
     num_frames = DURATION * config.video_properties.framerate
     # Read in the data from our audio file and cut it to the length/times we want
     sample_rate, data = wavfile.read(config.audio_input.filename)
-    stretch = 3
-    window_len = int(1 / config.audio_input.low_freq * stretch * sample_rate)
+    window_len = int(1 / config.audio_input.low_freq * config.audio_input.stretch * sample_rate)
     # Make the window length even to simplify math
     window_len = window_len + 1 if window_len % 1 == 1 else window_len
     left_channel = data[:,1]

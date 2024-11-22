@@ -4,6 +4,7 @@ class AudioInput(BaseModel):
     filename: str
     a_freq: float
     low_freq: int
+    stretch: int
 
 class VideoProperties(BaseModel):
     output_filename: str
