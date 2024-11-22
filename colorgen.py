@@ -19,7 +19,7 @@ class Palette(BaseModel):
     Db: str = "rgba(144,0,255)"
     Ab: str = "rgba(187,117,252)"
     Eb: str = "rgba(183,70,139)"
-    Bb: str = "rgba(183,70,139)"
+    Bb: str = "rgba(169, 103, 124)"
     F: str = "rgba(171,0,52)"
     Background: str = "rgba(0, 0, 0)"
 
