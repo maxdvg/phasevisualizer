@@ -1,11 +1,12 @@
 audio_input:
-  filename: "/home/mvg/Music/timeless.wav"
+  filename: "/home/mvg/Music/4pcszhukov.wav"
   a_freq: 440
   low_freq: 15
   stretch: 8
+  duration: 120
 
 video_properties:
   output_filename: "go.mp4"
   framerate: 30
-  resolution_width: 640
-  resolution_height: 480
+  resolution_width: 1920
+  resolution_height: 1200

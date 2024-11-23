@@ -26,7 +26,7 @@ if __name__ == "__main__":
                                     (config.video_properties.resolution_width, config.video_properties.resolution_height))
     
     # start getting the dominant frequencies and writing the frame
-    DURATION = 4 * 60 + 15 # seconds
+    DURATION = config.audio_input.duration
     START_TIME = 0 # seconds
 
     num_frames = DURATION * config.video_properties.framerate
@@ -77,8 +77,8 @@ if __name__ == "__main__":
                 bar_left = (frame.shape[1] // num_notes) * NOTE_ORDER.index(note)
                 bar_right = (frame.shape[1] // num_notes) * (NOTE_ORDER.index(note) + 1)
                 normalized_strength = (note_intensity - min_height) / (max_height - min_height)
-                height_in_px = min(config.video_properties.resolution_height, int(normalized_strength * config.video_properties.resolution_height))
-                frame[:height_in_px,bar_left:bar_right,] = palette_sampler.color_for_note(note)
+                # height_in_px = min(config.video_properties.resolution_height, int(normalized_strength * config.video_properties.resolution_height))
+                frame[:,bar_left:bar_right,] = palette_sampler.color_for_note(note) * normalized_strength
         video_writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
     
     video_writer.release()
