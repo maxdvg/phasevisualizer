@@ -8,6 +8,7 @@ __pycache__/
 *.mp4
 launch.json
 *png
+*npy
 
 # Distribution / packaging
 .Python
