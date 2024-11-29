@@ -13,6 +13,10 @@ class VideoProperties(BaseModel):
     resolution_width: int
     resolution_height: int
 
+class IntermediateFile(BaseModel):
+    filename: str
+
 class Config(BaseModel):
     audio_input: AudioInput
     video_properties: VideoProperties
+    intermediate_file: IntermediateFile

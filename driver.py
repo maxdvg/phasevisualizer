@@ -1,13 +1,11 @@
 from config import Config
 from colorgen import ColorPallateSampler, NOTE_ORDER
 import yaml
-import cv2
 from colorgen import Palette
 import numpy as np
 from scipy.io import wavfile
 from math import floor
 from tqdm import tqdm
-import subprocess
 
 if __name__ == "__main__":
     # Load in the config file
@@ -18,13 +16,6 @@ if __name__ == "__main__":
     # Initialize ColorPaletteSampler
     palette_sampler = ColorPallateSampler(config.audio_input.a_freq, Palette(), color_snapping=True)
 
-    # Initialize the video writer
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    video_writer = cv2.VideoWriter(config.video_properties.output_filename,
-                                    fourcc,
-                                    config.video_properties.framerate,
-                                    (config.video_properties.resolution_width, config.video_properties.resolution_height))
-    
     # start getting the dominant frequencies and writing the frame
     DURATION = config.audio_input.duration
     START_TIME = 0 # seconds
@@ -45,6 +36,7 @@ if __name__ == "__main__":
 
     window_fn = normal_gaussian_window(3, window_len)
 
+    note_strengths: np.ndarray = np.empty([num_frames, len(NOTE_ORDER)])
     for frame_idx in tqdm(range(num_frames), desc="Processing frames", unit="frame"):
         samples_from_start_pos = floor(frame_idx * (1 / config.video_properties.framerate) * sample_rate)
         left_gaussian_frame = min(window_len // 2, samples_from_start_pos)
@@ -65,22 +57,8 @@ if __name__ == "__main__":
             # What is the closest note? Throw out high and low
             if freq > 30 and freq < 5000:
                 note_intensities[palette_sampler.closest_note(freq)] = note_intensities.get(palette_sampler.closest_note(freq), 0.0) + magnitudes[idx]
-        # Ignore low frequencies
-        #note_intensities.pop('Background')
-        num_notes = len(note_intensities)
-        note_width = int(config.video_properties.resolution_width // num_notes)
-        max_height = max(list(note_intensities.values()))
-        frame = np.zeros((config.video_properties.resolution_height, config.video_properties.resolution_width, 3), dtype=np.uint8)
-        if max_height != 0.0:
-            min_height = min(list(note_intensities.values()))
-            for note, note_intensity in note_intensities.items():
-                bar_left = (frame.shape[1] // num_notes) * NOTE_ORDER.index(note)
-                bar_right = (frame.shape[1] // num_notes) * (NOTE_ORDER.index(note) + 1)
-                normalized_strength = (note_intensity - min_height) / (max_height - min_height)
-                # height_in_px = min(config.video_properties.resolution_height, int(normalized_strength * config.video_properties.resolution_height))
-                frame[:,bar_left:bar_right,] = palette_sampler.color_for_note(note) * normalized_strength
-        video_writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        for note, intensity in note_intensities.items():
+            note_strengths[frame_idx][NOTE_ORDER.index(note)] = intensity
     
-    video_writer.release()
-
-    subprocess.call(f"ffmpeg -i {config.video_properties.output_filename} -i {config.audio_input.filename} -y -c:v copy -c:a aac output.mp4", shell=True)
+    with open(config.intermediate_file.filename, 'wb') as f:
+        np.save(f, note_strengths)
