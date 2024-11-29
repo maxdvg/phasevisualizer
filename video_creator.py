@@ -6,6 +6,21 @@ import cv2
 from tqdm import tqdm
 import subprocess
 
+NUM_NOTES = len(NOTE_ORDER)
+
+def write_histogram_frame(hist_data: np.ndarray, video_writer: cv2.VideoWriter):
+        max_height = max(hist_data)
+        frame = np.zeros((config.video_properties.resolution_height, config.video_properties.resolution_width, 3), dtype=np.uint8)
+        if max_height != 0.0:
+            min_height = min(hist_data)
+            for note_idx, note_stren in enumerate(hist_data):
+                bar_left = (frame.shape[1] // NUM_NOTES) * note_idx
+                bar_right = (frame.shape[1] // NUM_NOTES) * (note_idx + 1)
+                normalized_strength = (note_stren - min_height) / (max_height - min_height)
+                height_in_px = min(config.video_properties.resolution_height, int(normalized_strength * config.video_properties.resolution_height))
+                frame[:height_in_px,bar_left:bar_right,] = palette_sampler.color_for_note(NOTE_ORDER[note_idx])
+        video_writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+
 if __name__ == "__main__":
     # Load in the config file
     with open("config.yaml", "r") as f:
@@ -27,22 +42,12 @@ if __name__ == "__main__":
                                     (config.video_properties.resolution_width, config.video_properties.resolution_height))
     
     num_frames = len(note_intensities)
-    num_notes = len(NOTE_ORDER)
     for frame_idx in tqdm(range(num_frames), desc="Generating video", unit="frame"):
         cur_frame_hist = note_intensities[frame_idx]
-        note_width = int(config.video_properties.resolution_width // num_notes)
-        max_height = max(cur_frame_hist)
-        frame = np.zeros((config.video_properties.resolution_height, config.video_properties.resolution_width, 3), dtype=np.uint8)
-        if max_height != 0.0:
-            min_height = min(cur_frame_hist)
-            for note_idx, note_stren in enumerate(cur_frame_hist):
-                bar_left = (frame.shape[1] // num_notes) * note_idx
-                bar_right = (frame.shape[1] // num_notes) * (note_idx + 1)
-                normalized_strength = (note_stren - min_height) / (max_height - min_height)
-                height_in_px = min(config.video_properties.resolution_height, int(normalized_strength * config.video_properties.resolution_height))
-                frame[:height_in_px,bar_left:bar_right,] = palette_sampler.color_for_note(NOTE_ORDER[note_idx])
-        video_writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        write_histogram_frame(cur_frame_hist, video_writer)
 
     video_writer.release()
 
     subprocess.call(f"ffmpeg -i {config.video_properties.output_filename} -i {config.audio_input.filename} -y -c:v copy -c:a aac output.mp4", shell=True)
+
+
