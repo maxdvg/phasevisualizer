@@ -1,15 +1,16 @@
 audio_input:
-  filename: "/home/mvg/Music/verselaflamme.wav"
+  filename: "/home/mvg/Music/saturninst.wav"
   a_freq: 440
-  low_freq: 15
-  stretch: 7
-  duration: 15
+  low_freq: 30
+  high_freq: 5000
+  stretch: 6
+  duration: 25
 
 video_properties:
   output_filename: "go.mp4"
   framerate: 30
-  resolution_width: 480
-  resolution_height: 300
+  resolution_width: 1920
+  resolution_height: 1200
 
 intermediate_file:
-  filename: "im.npy"
+  filename: "saturninst.npy"

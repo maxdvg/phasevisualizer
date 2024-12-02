@@ -20,7 +20,7 @@ class Palette(BaseModel):
     Ab: str = "rgba(187,117,252)"
     Eb: str = "rgba(183,70,139)"
     Bb: str = "rgba(169, 103, 124)"
-    F: str = "rgba(171,0,52)"
+    Fn: str = "rgba(171,0,52)"
     Background: str = "rgba(0, 0, 0)"
 
 def freqs_to_notes(base_freq_a: float, min_freq: int = 15, max_freq: int = 60000) -> dict:

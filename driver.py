@@ -8,6 +8,64 @@ from math import floor
 from tqdm import tqdm
 from math import pow
 import operator
+import pickle
+
+
+def generate_note_to_freq(freq_low: float, freq_high: float) -> dict[str, float]:
+    note_to_freq: dict[str, float] = {'An4': config.audio_input.a_freq}
+    cur_freq = config.audio_input.a_freq
+    cur_note = 'An4'
+    def create_adder(n):
+        def subtract(x):
+            """
+            absolutely BEAUTIFUL helper-function naming here! lmao. not gonna change it
+            it's too funny
+            """
+            return x + n
+        return subtract
+
+    def helper(climb_descend: int, cur_freq: float, cur_note: str):
+        """
+        side-effects note_to_freq adding all the relevant note-frequency mappings
+        in the range provided
+
+        I like higher-order functions
+        """
+        crementer = create_adder(climb_descend)
+        if climb_descend == 1:
+            comperator = operator.lt
+            compval = freq_high
+        elif climb_descend == -1:
+            comperator = operator.gt
+            compval = freq_low
+        else:
+            raise ValueError("Only defined for -1 and 1. How did you even get here?")
+        while comperator(cur_freq, compval):
+            cur_note_name = cur_note[:2]
+            cur_note_octave = int(cur_note[2])
+            cur_note_idx = NOTE_ORDER.index(cur_note_name)
+            if cur_note_idx == len(NOTE_ORDER) - 1:
+                next_note_octave = crementer(cur_note_octave)
+            else:
+                next_note_octave = cur_note_octave
+            next_note_name = NOTE_ORDER[(crementer(cur_note_idx)) % len(NOTE_ORDER)]
+            next_note = next_note_name + str(next_note_octave)
+            next_freq = cur_freq * pow(2, climb_descend / 12.0)
+            note_to_freq[next_note] = next_freq
+            cur_freq = next_freq
+            cur_note = next_note
+    
+    helper(1, cur_freq, cur_note)
+    helper(-1, cur_freq, cur_note)
+    return note_to_freq
+
+def get_closest_note_generic(freq: float, note_freqs: np.ndarray, freq_to_note: dict[float, str]) -> str:
+    first_greater_freq_idx = np.searchsorted(note_freqs, freq, side="left")
+    prev_diff = abs(note_freqs[first_greater_freq_idx - 1] - freq)
+    next_diff = abs(note_freqs[first_greater_freq_idx] - freq)
+    closest_index = first_greater_freq_idx - 1 if prev_diff < next_diff else first_greater_freq_idx
+    return freq_to_note[note_freqs[closest_index]]
+    
 
 if __name__ == "__main__":
     # Load in the config file
@@ -38,66 +96,11 @@ if __name__ == "__main__":
 
     window_fn = normal_gaussian_window(3, window_len)
 
-    def generate_note_to_freq(freq_low: float, freq_high: float) -> dict[str, float]:
-        note_to_freq: dict[str, float] = {'An4': config.audio_input.a_freq}
-        cur_freq = config.audio_input.a_freq
-        cur_note = 'An4'
-        def create_adder(n):
-            def subtract(x):
-                """
-                absolutely BEAUTIFUL helper-function naming here! lmao. not gonna change it
-                it's too funny
-                """
-                return x + n
-            return subtract
-
-        def helper(climb_descend: int, cur_freq: float, cur_note: str):
-            """
-            side-effects note_to_freq adding all the relevant note-frequency mappings
-            in the range provided
-
-            I like higher-order functions
-            """
-            crementer = create_adder(climb_descend)
-            if climb_descend == 1:
-                comperator = operator.lt
-                compval = freq_high
-            elif climb_descend == -1:
-                comperator = operator.gt
-                compval = freq_low
-            else:
-                raise ValueError("Only defined for -1 and 1. How did you even get here?")
-            while comperator(cur_freq, compval):
-                cur_note_name = cur_note[:2]
-                cur_note_octave = int(cur_note[2])
-                cur_note_idx = NOTE_ORDER.index(cur_note_name)
-                if cur_note_idx == len(NOTE_ORDER) - 1:
-                    next_note_octave = crementer(cur_note_octave)
-                else:
-                    next_note_octave = cur_note_octave
-                next_note_name = NOTE_ORDER[(crementer(cur_note_idx)) % len(NOTE_ORDER)]
-                next_note = next_note_name + str(next_note_octave)
-                next_freq = cur_freq * pow(2, climb_descend / 12.0)
-                note_to_freq[next_note] = next_freq
-                cur_freq = next_freq
-                cur_note = next_note
-        
-        helper(1, cur_freq, cur_note)
-        helper(-1, cur_freq, cur_note)
-        return note_to_freq
-    
     note_to_freq = generate_note_to_freq(config.audio_input.low_freq, config.audio_input.high_freq)
     # its bijective so this is chill
     freq_to_note = {note: freq for freq, note in note_to_freq.items()}
     freq_array = np.sort(np.array(list(freq_to_note.keys())))
 
-    def get_closest_note_generic(freq: float, note_freqs: np.ndarray, freq_to_note: dict[float, str]) -> str:
-        first_greater_freq_idx = np.searchsorted(note_freqs, freq, side="left")
-        prev_diff = abs(note_freqs[first_greater_freq_idx - 1] - freq)
-        next_diff = abs(note_freqs[first_greater_freq_idx] - freq)
-        closest_index = first_greater_freq_idx - 1 if prev_diff < next_diff else first_greater_freq_idx
-        return freq_to_note[note_freqs[closest_index]]
-    
     def get_closest_note(freq: float):
         return get_closest_note_generic(freq, freq_array, freq_to_note)
 
@@ -129,3 +132,6 @@ if __name__ == "__main__":
     
     with open(config.intermediate_file.filename, 'wb') as f:
         np.save(f, note_strengths)
+    with open('data.pickle', 'wb') as f:
+        # Pickle the 'data' dictionary using the highest protocol available.
+        pickle.dump(note_to_freq, f, pickle.HIGHEST_PROTOCOL)
