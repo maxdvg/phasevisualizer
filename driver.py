@@ -38,16 +38,26 @@ if __name__ == "__main__":
 
     window_fn = normal_gaussian_window(3, window_len)
 
-    def generate_note_to_freq(freq_low: float, freq_high: float):
+    def generate_note_to_freq(freq_low: float, freq_high: float) -> dict[str, float]:
         note_to_freq: dict[str, float] = {'An4': config.audio_input.a_freq}
         cur_freq = config.audio_input.a_freq
         cur_note = 'An4'
         def create_adder(n):
             def subtract(x):
+                """
+                absolutely BEAUTIFUL helper-function naming here! lmao. not gonna change it
+                it's too funny
+                """
                 return x + n
             return subtract
 
         def helper(climb_descend: int, cur_freq: float, cur_note: str):
+            """
+            side-effects note_to_freq adding all the relevant note-frequency mappings
+            in the range provided
+
+            I like higher-order functions
+            """
             crementer = create_adder(climb_descend)
             if climb_descend == 1:
                 comperator = operator.lt
@@ -56,7 +66,7 @@ if __name__ == "__main__":
                 comperator = operator.gt
                 compval = freq_low
             else:
-                raise ValueError("Only defined for -1 and 1")
+                raise ValueError("Only defined for -1 and 1. How did you even get here?")
             while comperator(cur_freq, compval):
                 cur_note_name = cur_note[:2]
                 cur_note_octave = int(cur_note[2])
@@ -76,9 +86,22 @@ if __name__ == "__main__":
         helper(-1, cur_freq, cur_note)
         return note_to_freq
     
-    note_to_freq = generate_note_to_freq(30, 5000)
+    note_to_freq = generate_note_to_freq(config.audio_input.low_freq, config.audio_input.high_freq)
+    # its bijective so this is chill
+    freq_to_note = {note: freq for freq, note in note_to_freq.items()}
+    freq_array = np.sort(np.array(list(freq_to_note.keys())))
 
-    note_strengths: np.ndarray = np.empty([num_frames, len(NOTE_ORDER)])
+    def get_closest_note_generic(freq: float, note_freqs: np.ndarray, freq_to_note: dict[float, str]) -> str:
+        first_greater_freq_idx = np.searchsorted(note_freqs, freq, side="left")
+        prev_diff = abs(note_freqs[first_greater_freq_idx - 1] - freq)
+        next_diff = abs(note_freqs[first_greater_freq_idx] - freq)
+        closest_index = first_greater_freq_idx - 1 if prev_diff < next_diff else first_greater_freq_idx
+        return freq_to_note[note_freqs[closest_index]]
+    
+    def get_closest_note(freq: float):
+        return get_closest_note_generic(freq, freq_array, freq_to_note)
+
+    note_strengths: np.ndarray = np.empty([num_frames, len(note_to_freq)])
     for frame_idx in tqdm(range(num_frames), desc="Processing frames", unit="frame"):
         samples_from_start_pos = floor(frame_idx * (1 / config.video_properties.framerate) * sample_rate)
         left_gaussian_frame = min(window_len // 2, samples_from_start_pos)
@@ -96,13 +119,13 @@ if __name__ == "__main__":
         frequency_resolution = np.fft.rfftfreq(len(signal), 1.0 / sample_rate)
         note_intensities: dict[str, float] = {}
 
-
         for idx, freq in enumerate(frequency_resolution):
             # What is the closest note? Throw out high and low
-            if freq > 30 and freq < 5000:
-                note_intensities[palette_sampler.closest_note(freq)] = note_intensities.get(palette_sampler.closest_note(freq), 0.0) + magnitudes[idx]
-        for note, intensity in note_intensities.items():
-            note_strengths[frame_idx][NOTE_ORDER.index(note)] = intensity
+            if freq > config.audio_input.low_freq and freq < config.audio_input.high_freq:
+                closest_note = get_closest_note(freq)
+                note_intensities[closest_note] = note_intensities.get(closest_note, 0.0) + magnitudes[idx]
+        for freq_idx, freq in enumerate(freq_array):
+            note_strengths[frame_idx][freq_idx] = note_intensities.get(freq_to_note[freq], 0.0)
     
     with open(config.intermediate_file.filename, 'wb') as f:
         np.save(f, note_strengths)
