@@ -4,6 +4,7 @@ class AudioInput(BaseModel):
     filename: str
     a_freq: float
     low_freq: int
+    high_freq: int
     stretch: int
     duration: int
 
