@@ -1,16 +1,16 @@
 audio_input:
-  filename: "/home/mvg/Music/saturninst.wav"
-  a_freq: 440
-  low_freq: 30
-  high_freq: 5000
-  stretch: 6
-  duration: 25
+  filename: "/home/mvg/Music/lopsidewalz.wav"
+  a_freq: 443.5
+  low_freq: 59
+  high_freq: 4000
+  stretch: 10
+  duration: 90
 
 video_properties:
   output_filename: "go.mp4"
   framerate: 30
-  resolution_width: 1920
-  resolution_height: 1200
+  resolution_width: 480
+  resolution_height: 300
 
 intermediate_file:
-  filename: "saturninst.npy"
+  filename: "lopsidewalz.npy"

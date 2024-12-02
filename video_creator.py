@@ -46,6 +46,17 @@ def denoise(full_data: np.ndarray, smoothing_reach: int = 6, cutoff: float = .35
         # Find indices where elements are cutoff std dev above the mean
         indices = np.where(medians > mean + cutoff * std_dev)[0]
         cleaned_data_mask[idx][indices] = 1
+    # Sweep backwards
+    for idx in range(smoothing_reach, len(full_data)):
+        backwards_look = full_data[idx - smoothing_reach:idx]
+        medians = np.mean(backwards_look, axis=0)
+        # Calculate the mean and standard deviation of means lol
+        mean = np.mean(medians)
+        std_dev = np.std(medians)
+        # Find indices where elements are cutoff std dev above the mean
+        indices = np.where(medians > mean + cutoff * std_dev)[0]
+        cleaned_data_mask[idx][indices] *= 1
+
     cleaned_data = full_data * cleaned_data_mask
     return cleaned_data
 
@@ -90,8 +101,8 @@ if __name__ == "__main__":
     
     num_frames = len(note_intensities)
 
-    cleaned = denoise(note_intensities, smoothing_reach=10, cutoff=.5)
-    cleaned = smoother(cleaned)
+    cleaned = denoise(note_intensities, smoothing_reach=8, cutoff=.4)
+    cleaned = smoother(cleaned, smoothing_kernel_len=5)
     for frame_idx in tqdm(range(num_frames), desc="Generating video", unit="frame"):
         cur_frame_hist = cleaned[frame_idx]
         write_histogram_frame(cur_frame_hist, video_writer, freq_array, freq_to_note)
