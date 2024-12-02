@@ -26,7 +26,7 @@ def write_histogram_frame(hist_data: np.ndarray, video_writer: cv2.VideoWriter, 
                 # else:
                 #     normalized_strength = note_stren / global_max
                 # height_in_px = min(config.video_properties.resolution_height, int(normalized_strength * config.video_properties.resolution_height))
-                if normalized_strength > .25:
+                if normalized_strength > 0:
                     if flicker_reduction_data is not None:
                         if flicker_reduction_data[:,note_idx].mean() > note_stren * .5:
                             frame[:,bar_left:bar_right,] = palette_sampler.color_for_note(freq_to_note[freq_array[note_idx]][:2]) * normalized_strength
@@ -34,23 +34,33 @@ def write_histogram_frame(hist_data: np.ndarray, video_writer: cv2.VideoWriter, 
                             frame[:,bar_left:bar_right,] = palette_sampler.color_for_note(freq_to_note[freq_array[note_idx]][:2]) * normalized_strength
         video_writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
-def denoise(full_data: np.ndarray) -> np.ndarray:
-    # just some random-ass momentum-based denoising idk see if it works
-    # spoiler: it doesn't
-
-    cleaned_data: np.ndarray = np.zeros(full_data.shape)
-    initial_state = full_data[0]
-    second_state = full_data[1]
-    cleaned_data[0] = initial_state
-    cleaned_data[1] = second_state
-    deltas = second_state - initial_state
-    for i in range(3, full_data.shape[0]):
-        new_deltas = full_data[i] - full_data[i - 1]
-        second_moments = new_deltas - deltas
-        # assumption is second moment is relatively smooth for "good" sounds   
-                 
-        deltas = new_deltas
+def denoise(full_data: np.ndarray, smoothing_reach: int = 6, cutoff: float = .35) -> np.ndarray:
+    cleaned_data_mask: np.ndarray = np.zeros(full_data.shape)
+    # Sweep forwards, checking if the note persists above median for durating of smoothing-reach
+    for idx in range(len(full_data) - smoothing_reach):
+        forward_look = full_data[idx:idx + smoothing_reach]
+        medians = np.mean(forward_look, axis=0)
+        # Calculate the mean and standard deviation of means lol
+        mean = np.mean(medians)
+        std_dev = np.std(medians)
+        # Find indices where elements are cutoff std dev above the mean
+        indices = np.where(medians > mean + cutoff * std_dev)[0]
+        cleaned_data_mask[idx][indices] = 1
+    cleaned_data = full_data * cleaned_data_mask
     return cleaned_data
+
+def smoother(full_data: np.ndarray, smoothing_kernel_len: int = 5) -> np.ndarray:
+     if smoothing_kernel_len % 2 != 1:
+          raise ValueError("I didn't implement smoother for non-odd kernel lengths yet")
+     smoothed_data = np.empty(full_data.shape)
+     one_side_kernel_len = smoothing_kernel_len // 2 + 1
+     start_idx = one_side_kernel_len
+     end_idx = len(full_data) - one_side_kernel_len
+     smoothed_data[:start_idx] = 0 # Change later if you want it to actually be good
+     smoothed_data[end_idx:] = 0
+     for idx in range(start_idx, end_idx):
+          smoothed_data[idx] = full_data[idx - one_side_kernel_len:idx + one_side_kernel_len].sum(axis=0) / float(smoothing_kernel_len)
+     return smoothed_data
 
 if __name__ == "__main__":
     # Load in the config file
@@ -80,13 +90,11 @@ if __name__ == "__main__":
     
     num_frames = len(note_intensities)
 
-    # denoise(note_intensities)
+    cleaned = denoise(note_intensities, smoothing_reach=10, cutoff=.5)
+    cleaned = smoother(cleaned)
     for frame_idx in tqdm(range(num_frames), desc="Generating video", unit="frame"):
-        cur_frame_hist = note_intensities[frame_idx]
-        if frame_idx < 6:
-            write_histogram_frame(cur_frame_hist, video_writer, freq_array, freq_to_note)
-        else:
-            write_histogram_frame(cur_frame_hist, video_writer, freq_array, freq_to_note, flicker_reduction_data=note_intensities[frame_idx - 3:frame_idx])
+        cur_frame_hist = cleaned[frame_idx]
+        write_histogram_frame(cur_frame_hist, video_writer, freq_array, freq_to_note)
 
     video_writer.release()
 
