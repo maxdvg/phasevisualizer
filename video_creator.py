@@ -11,7 +11,8 @@ import pickle
 NUM_NOTES = len(NOTE_ORDER)
 
 def write_histogram_frame(hist_data: np.ndarray, video_writer: cv2.VideoWriter, freq_array: np.ndarray,
-                           freq_to_note: dict[float, str], global_max: Optional[float] = None):
+                           freq_to_note: dict[float, str], global_max: Optional[float] = None,
+                           flicker_reduction_data: Optional[np.ndarray] = None):
         max_height = max(hist_data)
         frame = np.zeros((config.video_properties.resolution_height, config.video_properties.resolution_width, 3), dtype=np.uint8)
         if max_height != 0.0:
@@ -25,7 +26,12 @@ def write_histogram_frame(hist_data: np.ndarray, video_writer: cv2.VideoWriter, 
                 # else:
                 #     normalized_strength = note_stren / global_max
                 # height_in_px = min(config.video_properties.resolution_height, int(normalized_strength * config.video_properties.resolution_height))
-                frame[:,bar_left:bar_right,] = palette_sampler.color_for_note(freq_to_note[freq_array[note_idx]][:2]) * normalized_strength
+                if normalized_strength > .25:
+                    if flicker_reduction_data is not None:
+                        if flicker_reduction_data[:,note_idx].mean() > note_stren * .5:
+                            frame[:,bar_left:bar_right,] = palette_sampler.color_for_note(freq_to_note[freq_array[note_idx]][:2]) * normalized_strength
+                    else:
+                            frame[:,bar_left:bar_right,] = palette_sampler.color_for_note(freq_to_note[freq_array[note_idx]][:2]) * normalized_strength
         video_writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
 def denoise(full_data: np.ndarray) -> np.ndarray:
@@ -77,7 +83,10 @@ if __name__ == "__main__":
     # denoise(note_intensities)
     for frame_idx in tqdm(range(num_frames), desc="Generating video", unit="frame"):
         cur_frame_hist = note_intensities[frame_idx]
-        write_histogram_frame(cur_frame_hist, video_writer, freq_array, freq_to_note, global_max=note_intensities.max())
+        if frame_idx < 6:
+            write_histogram_frame(cur_frame_hist, video_writer, freq_array, freq_to_note)
+        else:
+            write_histogram_frame(cur_frame_hist, video_writer, freq_array, freq_to_note, flicker_reduction_data=note_intensities[frame_idx - 3:frame_idx])
 
     video_writer.release()
 
