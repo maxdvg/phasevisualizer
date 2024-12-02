@@ -3,18 +3,18 @@ from dataclasses import dataclass
 import numpy as np
 from typing import Dict
 
-NOTE_ORDER = ('A', 'Bb', 'B', 'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab')
+NOTE_ORDER = ('Cn', 'Db', 'Dn', 'Eb', 'En', 'Fn', 'Gb', 'Gn', 'Ab', 'An', 'Bb', 'Bn')
 
 class Palette(BaseModel):
     """
     Default palette is Scriabin's synesthesia palette
     """
-    C: str = "rgba(255,0,0)"
-    G: str = "rgba(255,127,0)"
-    D: str = "rgba(255,255,0)"
-    A: str = "rgba(51,204,51)"
-    E: str = "rgba(195,242,255)"
-    B: str = "rgba(142,201,255)"
+    Cn: str = "rgba(255,0,0)"
+    Gn: str = "rgba(255,127,0)"
+    Dn: str = "rgba(255,255,0)"
+    An: str = "rgba(51,204,51)"
+    En: str = "rgba(195,242,255)"
+    Bn: str = "rgba(142,201,255)"
     Gb: str = "rgba(127,139,253)"
     Db: str = "rgba(144,0,255)"
     Ab: str = "rgba(187,117,252)"
@@ -33,7 +33,7 @@ def freqs_to_notes(base_freq_a: float, min_freq: int = 15, max_freq: int = 60000
     Returns:
         A dictionary mapping frequencies to the corresponding 12 tone equal temperment note name
     """
-    notes = ["A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab"]
+    notes = ["An", "Bb", "Bn", "Cn", "Db", "Dn", "Eb", "En", "Fn", "Gb", "Gn", "Ab"]
     cur_freq = base_freq_a
     cur_note_idx = 0
     # Search down to the lowest note in our range of notes
