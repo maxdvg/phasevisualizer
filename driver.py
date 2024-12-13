@@ -136,9 +136,10 @@ if __name__ == "__main__":
                 note_strengths[frame_idx][freq_idx] = note_intensities.get(freq_to_note[freq], 0.0)
         
         elif config.intermediate_file.extraction_type == ExtractionType.CROSS_COR:
+            # Is currently quite slow, achieveing 3-8FPS spectral rendering (~5-10x slower than real life)
             seq = np.arange(float(len(signal)))
             for freq_idx, freq in enumerate(freq_array):
-                adjusted_seq = seq / (freq) * (2 * np.pi)      
+                adjusted_seq = (seq) / (sample_rate) * freq * (2 * np.pi)      
                 freq_sin = np.sin(adjusted_seq)
                 # cross-correlate signal with cosine of appropriate period
                 correlation = correlate(signal, freq_sin)
