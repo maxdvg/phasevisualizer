@@ -1,16 +1,17 @@
 audio_input:
-  filename: "/home/mvg/Music/lopsidewalz.wav"
-  a_freq: 443.5
-  low_freq: 59
-  high_freq: 4000
-  stretch: 10
-  duration: 90
+  filename: "/home/mvg/Music/slowass.wav"
+  a_freq: 440
+  low_freq: 16 # just under Cn0 lowest note on 88 key
+  high_freq: 7903 # just over Bn8, highest note on a 88 key
+  stretch: 6
+  duration: 20
 
 video_properties:
   output_filename: "go.mp4"
   framerate: 30
-  resolution_width: 480
-  resolution_height: 300
+  resolution_width: 384
+  resolution_height: 240
 
 intermediate_file:
-  filename: "lopsidewalz.npy"
+  filename: "slowass.npy"
+  extraction_type: "CROSS-COR"

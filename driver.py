@@ -1,4 +1,4 @@
-from config import Config
+from config import Config, ExtractionType
 from colorgen import ColorPallateSampler, NOTE_ORDER
 import yaml
 from colorgen import Palette
@@ -9,6 +9,7 @@ from tqdm import tqdm
 from math import pow
 import operator
 import pickle
+from scipy.signal import correlate
 
 
 def generate_note_to_freq(freq_low: float, freq_high: float) -> dict[str, float]:
@@ -111,7 +112,10 @@ if __name__ == "__main__":
         right_gaussian_frame = min(window_len // 2, len(vec) - samples_from_start_pos)
         active_gaussian = window_fn[window_len // 2 - left_gaussian_frame: window_len // 2 + right_gaussian_frame]
         signal = vec[samples_from_start_pos - left_gaussian_frame:samples_from_start_pos + right_gaussian_frame]
+        # TODO: Investigate Goertzel and Bluestein algorithms, the frequency bins of the rfft don't align very nicely
+        # with note frequencies and it is causing artifacts in the visualizer
         # Since we're dealing with real numbers we can use real fft
+
         fourier_transform = np.fft.rfft(signal * active_gaussian)
 
         # not concerned with phase, so get magnitude only
@@ -122,13 +126,26 @@ if __name__ == "__main__":
         frequency_resolution = np.fft.rfftfreq(len(signal), 1.0 / sample_rate)
         note_intensities: dict[str, float] = {}
 
-        for idx, freq in enumerate(frequency_resolution):
-            # What is the closest note? Throw out high and low
-            if freq > config.audio_input.low_freq and freq < config.audio_input.high_freq:
-                closest_note = get_closest_note(freq)
-                note_intensities[closest_note] = note_intensities.get(closest_note, 0.0) + magnitudes[idx]
-        for freq_idx, freq in enumerate(freq_array):
-            note_strengths[frame_idx][freq_idx] = note_intensities.get(freq_to_note[freq], 0.0)
+        if config.intermediate_file.extraction_type == ExtractionType.FFT:
+            for idx, freq in enumerate(frequency_resolution):
+                # What is the closest note? Throw out high and low
+                if freq > config.audio_input.low_freq and freq < config.audio_input.high_freq:
+                    closest_note = get_closest_note(freq)
+                    note_intensities[closest_note] = note_intensities.get(closest_note, 0.0) + magnitudes[idx]
+            for freq_idx, freq in enumerate(freq_array):
+                note_strengths[frame_idx][freq_idx] = note_intensities.get(freq_to_note[freq], 0.0)
+        
+        elif config.intermediate_file.extraction_type == ExtractionType.CROSS_COR:
+            seq = np.arange(float(len(signal)))
+            for freq_idx, freq in enumerate(freq_array):
+                adjusted_seq = seq / (freq) * (2 * np.pi)      
+                freq_cos = np.cos(adjusted_seq)
+                # cross-correlate signal with cosine of appropriate period
+                correlation = correlate(signal, freq_cos)
+                note_strengths[frame_idx][freq_idx] = np.max(correlation)
+        
+        else:
+            raise(AttributeError("How did you even get here? Did you supply a valid intermediate file extraction type?"))
     
     with open(config.intermediate_file.filename, 'wb') as f:
         np.save(f, note_strengths)
