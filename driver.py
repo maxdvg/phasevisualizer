@@ -10,7 +10,28 @@ from math import pow
 import operator
 import pickle
 from scipy.signal import correlate
+import multiprocessing as mp
 
+def process_freq_band(signal, freq_array_chunk, sample_rate):
+    seq = np.arange(float(len(signal)))
+    freq_matrix = np.outer(seq, freq_array_chunk * 2 * np.pi / sample_rate)
+    sin_waves = np.sin(freq_matrix)
+    correlations = np.array([correlate(signal, sin_wave) for sin_wave in sin_waves.T])
+    return np.max(correlations, axis=1)
+
+def parallel_cross_correlation(signal, freq_array, sample_rate, num_processes=4):
+    num_chunks = num_processes
+    freq_array_chunks = np.array_split(freq_array, num_chunks)
+
+    with mp.Pool(num_processes) as pool:
+        results = pool.starmap(process_freq_band,
+                               [(signal, chunk, sample_rate) for chunk in freq_array_chunks])
+    note_strengths = np.empty(len(freq_array))
+    idx = 0
+    for arr in results:
+        note_strengths[idx:idx + len(arr)] = arr
+        idx += len(arr)
+    return note_strengths
 
 def generate_note_to_freq(freq_low: float, freq_high: float) -> dict[str, float]:
     note_to_freq: dict[str, float] = {'An4': config.audio_input.a_freq}
@@ -137,13 +158,18 @@ if __name__ == "__main__":
         
         elif config.intermediate_file.extraction_type == ExtractionType.CROSS_COR:
             # Is currently quite slow, achieveing 3-8FPS spectral rendering (~5-10x slower than real life)
-            seq = np.arange(float(len(signal)))
-            for freq_idx, freq in enumerate(freq_array):
-                adjusted_seq = (seq) / (sample_rate) * freq * (2 * np.pi)      
-                freq_sin = np.sin(adjusted_seq)
-                # cross-correlate signal with cosine of appropriate period
-                correlation = correlate(signal, freq_sin)
-                note_strengths[frame_idx][freq_idx] = np.max(correlation)
+            note_strengths[frame_idx] = parallel_cross_correlation(signal, freq_array, sample_rate, num_processes=8)
+            # seq = np.arange(float(len(signal)))
+            # freq_matrix = np.outer(seq, freq_array * 2 * np.pi / sample_rate)
+            # sin_waves = np.sin(freq_matrix)
+            # correlations = np.array([correlate(signal, sin_wave) for sin_wave in sin_waves.T])
+            # note_strengths[frame_idx] = np.max(correlations, axis=1)
+            # for freq_idx, freq in enumerate(freq_array):
+            #     adjusted_seq = (seq) / (sample_rate) * freq * (2 * np.pi)      
+            #     freq_sin = np.sin(adjusted_seq)
+            #     # cross-correlate signal with cosine of appropriate period
+            #     correlation = correlate(signal, freq_sin)
+            #     note_strengths[frame_idx][freq_idx] = np.max(correlation)
         
         else:
             raise(AttributeError("How did you even get here? Did you supply a valid intermediate file extraction type?"))
