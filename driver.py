@@ -139,9 +139,9 @@ if __name__ == "__main__":
             seq = np.arange(float(len(signal)))
             for freq_idx, freq in enumerate(freq_array):
                 adjusted_seq = seq / (freq) * (2 * np.pi)      
-                freq_cos = np.cos(adjusted_seq)
+                freq_sin = np.sin(adjusted_seq)
                 # cross-correlate signal with cosine of appropriate period
-                correlation = correlate(signal, freq_cos)
+                correlation = correlate(signal, freq_sin)
                 note_strengths[frame_idx][freq_idx] = np.max(correlation)
         
         else:

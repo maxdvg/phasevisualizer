@@ -9,8 +9,8 @@ audio_input:
 video_properties:
   output_filename: "go.mp4"
   framerate: 30
-  resolution_width: 384
-  resolution_height: 240
+  resolution_width: 1920
+  resolution_height: 1200
 
 intermediate_file:
   filename: "slowass.npy"
