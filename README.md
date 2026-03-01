@@ -33,11 +33,11 @@ WAV → wav_analyze → .wvlt → normalize → denoise → bleed suppression �
 **Python:** 3.10 or later
 
 **External tools (must be on `PATH` or specified via `--wav-analyze`):**
-- `wav_analyze` — build from [music-visualizer](../music-visualizer): `cd ../music-visualizer && make`
+- `wav_analyze` — build from [music-visualizer](https://codeberg.org/zfzfpk/music-visualizer): `cd ../music-visualizer && make`
 - `ffmpeg` — available from [ffmpeg.org](https://ffmpeg.org) or your system package manager
 
 **Python dependencies** (managed by uv):
-- `numpy`, `pydantic`, `tqdm`, `wvlt[numpy]`
+- `numpy`, `pydantic`, `tqdm`, `wvlt[numpy]` (contained in [music-visualizer](https://codeberg.org/zfzfpk/music-visualizer))
 
 ## Installation
 
