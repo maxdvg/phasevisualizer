@@ -24,9 +24,14 @@ def render_video(
     Scriabin's synesthesia palette. Audio from the original WAV is
     muxed in a single ffmpeg pass.
 
+    All bar pixel data is pre-computed with vectorized numpy operations
+    before the render loop begins. The loop body is a single array
+    assignment and a zero-copy pipe write, eliminating per-frame
+    allocation and serialization overhead.
+
     Args:
         intensities: Array of shape (num_frames, 88) with float intensity
-            values (non-negative).
+            values, expected to be pre-normalized to [0, 1].
         input_wav: Path to the original WAV file for audio muxing.
         output_mp4: Path for the output MP4 video.
         fps: Video frame rate (should match analysis fps).
@@ -41,6 +46,15 @@ def render_video(
     total_bar_width = bar_width * num_keys
     margin_left = (width - total_bar_width) // 2
 
+    # Pre-compute bar pixel rows for all frames at once.
+    # bar_rows_all: (num_frames, total_bar_width, 3) uint8
+    colors_float = colors.astype(np.float32)
+    normalized_all = np.clip(intensities, 0.0, 1.0)
+    bar_colors_all = (
+        colors_float * normalized_all[:, :, np.newaxis]
+    ).astype(np.uint8)
+    bar_rows_all = np.repeat(bar_colors_all, bar_width, axis=1)
+
     ffmpeg_cmd = [
         "ffmpeg", "-y",
         "-f", "rawvideo",
@@ -49,68 +63,24 @@ def render_video(
         "-r", str(fps),
         "-i", "pipe:0",
         "-i", input_wav,
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
         "-c:a", "aac", "-b:a", "192k",
         "-shortest",
         "-loglevel", "warning",
         output_mp4,
     ]
 
-    proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
+    # Single reusable frame buffer; black margins stay zero throughout.
+    frame_buf = np.zeros((height, width, 3), dtype=np.uint8)
 
+    proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
     try:
-        for frame_idx in tqdm(range(num_frames), desc="Rendering", unit="frame"):
-            frame = _build_frame(
-                intensities[frame_idx], colors, width, height,
-                bar_width, margin_left, total_bar_width,
-            )
-            proc.stdin.write(frame.tobytes())
+        for i in tqdm(range(num_frames), desc="Rendering", unit="frame"):
+            frame_buf[:, margin_left:margin_left + total_bar_width] = bar_rows_all[i]
+            proc.stdin.write(memoryview(frame_buf))
     finally:
         proc.stdin.close()
         proc.wait()
 
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg exited with code {proc.returncode}")
-
-
-def _build_frame(
-    frame_intensities: np.ndarray,
-    colors: np.ndarray,
-    width: int,
-    height: int,
-    bar_width: int,
-    margin_left: int,
-    total_bar_width: int,
-) -> np.ndarray:
-    """Construct a single RGB frame as a numpy array.
-
-    Args:
-        frame_intensities: Array of shape (88,) with intensity values,
-            expected to be pre-normalized to [0, 1] by equalization.
-        colors: Array of shape (88, 3) uint8 with per-key RGB colors.
-        width: Frame width in pixels.
-        height: Frame height in pixels.
-        bar_width: Width of each bar in pixels.
-        margin_left: Left margin offset in pixels.
-        total_bar_width: Total width used by all bars.
-
-    Returns:
-        Array of shape (height, width, 3) with dtype uint8.
-    """
-    frame = np.zeros((height, width, 3), dtype=np.uint8)
-
-    # Clip to [0, 1] (data should already be normalized by equalization).
-    normalized = np.clip(frame_intensities, 0.0, 1.0)
-
-    # Scale colors by intensity: (88, 3) float -> uint8.
-    bar_colors = (colors.astype(np.float32) * normalized[:, np.newaxis]).astype(
-        np.uint8
-    )
-
-    # Expand each bar's color across bar_width pixels: (88, 3) -> (total_bar_width, 3).
-    bar_row = np.repeat(bar_colors, bar_width, axis=0)
-
-    # Fill every row of the frame with the same bar pattern.
-    frame[:, margin_left:margin_left + total_bar_width] = bar_row
-
-    return frame
