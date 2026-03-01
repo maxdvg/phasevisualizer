@@ -9,9 +9,9 @@ Music visualization software inspired by composer [Alexander Scriabin's](https:/
 ## How It Works
 
 phasevisualizer uses Morlet Continuous Wavelet Transform (CWT) analysis from the companion
-[music-visualizer](../music-visualizer) project to extract per-key intensities across all
-88 standard piano keys (A0–C8). The analysis is performed by `wav_analyze`, a C utility that
-produces a `.wvlt` binary file, which is then read via the `wvlt` Python package.
+[music-visualizer](https://codeberg.org/zfzfpk/music-visualizer) project to extract per-key intensities across all
+88 standard piano keys (A0–C8). The analysis is performed by [`wav_analyze`](https://codeberg.org/zfzfpk/music-visualizer), a C utility that
+produces a `.wvlt` binary file, which is then read via the [`wvlt`](https://codeberg.org/zfzfpk/music-visualizer/src/branch/main/python) Python package.
 
 The processing pipeline is:
 
